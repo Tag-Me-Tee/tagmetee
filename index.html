@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TagMeTee</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Orbitron:wght@500;700;800&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.cdnfonts.com/css/ethnocentric');
+        
+        :root {
+            --bg: #0c0c0c; /* Deep sophisticated dark grey */
+            --cyan: #00e5ff;
+            --red: #ff004c;
+            --text: rgba(255, 255, 255, 0.8);
+            --text-bright: #ffffff;
+            --panel: rgba(18, 18, 18, 0.7); /* Slightly lighter panel to offset new shadow */
+            --panel-border: transparent; /* Removing cyan border */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Subtle dark grey grid/scanline texture */
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--text-bright);
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .brand-font {
+            font-family: 'Ethnocentric', sans-serif !important;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--cyan);
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        /* --- SINGLE CELL CONTAINER --- */
+        #app-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
+            width: 100%;
+            height: 100dvh;
+            max-width: 500px;
+            background-color: var(--panel);
+            /* Added small grid texture on the dark panel background */
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 15px 15px;
+            border: none;
+            border-radius: 0; /* Reset for mobile */
+            box-shadow: none; /* Removed for full height */
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Scanline Overlay */
+        #app-container::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0.3;
+        }
+
+        /* Neon Grid Burst Overlay */
+        #app-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 229, 255, 0.4) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 229, 255, 0.4) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0;
+            z-index: 1; /* Below view content */
+            pointer-events: none;
+            mix-blend-mode: screen;
+            filter: drop-shadow(0 0 5px var(--cyan));
+        }
+
+        #app-container.burst-active::before {
+            animation: neonGridPulse 2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        @keyframes neonGridPulse {
+            0% { opacity: 0; }
+            15% { opacity: 0.8; filter: drop-shadow(0 0 10px var(--cyan)); } 
+            25% { opacity: 0.4; }
+            40% { opacity: 0; }
+            100% { opacity: 0; }
+        }
+
+        /* View Layering */
+        .view {
+            grid-area: 1 / 1;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px) scale(0.98);
+            transition: opacity 0.5s ease, transform 0.5s ease, visibility 0.5s;
+            pointer-events: none;
+            padding: 30px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .view.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* --- GLITCH LOADER (View: Loading) --- */
+        #view-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            width: 100%;
+            height: 100%; /* Fills the container rigidly */
+            box-sizing: border-box;
+            gap: 20px;
+        }
+        
+        #view-loading > :not(.triple-dot-loader) {
+            transform: translateY(-5vh); /* Lift Logo and Text slightly up */
+        }
+
+        .glitch-loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            gap: 20px; /* Perfect spacing between icon and text */
+        }
+
+        /* --- ICON (Stable, pulsing cyan glow) --- */
+        .tagmetee-icon {
+            width: 100%;
+            max-width: 75%;
+            height: auto;
+            aspect-ratio: 1.22;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tagmetee-icon img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.4));
+            animation: iconPulse 2.5s infinite ease-in-out;
+        }
+
+        @keyframes iconPulse {
+            0%, 100% { filter: drop-shadow(0 0 5px rgba(0, 229, 255, 0.2)); }
+            50% { filter: drop-shadow(0 0 15px rgba(0, 229, 255, 0.5)); }
+        }
+        
+        /* --- TEXT (Glitch + Lightning Burst) --- */
+        .tagmetee-text {
+            position: relative;
+            width: 100%;
+            max-width: 75%;
+            height: auto;
+            aspect-ratio: 5 / 1;
+            margin: 0 auto;
+        }
+
+        .tagmetee-text img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            position: absolute;
+            top: 0; left: 0;
+        }
+
+        /* Base text stable state */
+        .tagmetee-text img:nth-child(1) {
+            opacity: 1;
+            filter: drop-shadow(0 0 0 transparent);
+        }
+
+        /* Lightning Bloom Circle behind text */
+        .tagmetee-text::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 0px; height: 0px;
+            border-radius: 50%;
+            background: radial-gradient(ellipse, rgba(0, 229, 255, 1) 0%, rgba(0, 136, 255, 0.8) 30%, transparent 70%);
+            box-shadow: 0 0 30px 10px rgba(22, 116, 199, 0.5), 0 0 60px 20px rgba(0, 229, 255, 0.3);
+            transform: translate(-50%, -50%);
+            mix-blend-mode: screen;
+            opacity: 0;
+            z-index: -1; 
+        }
+
+        /* Ghosts hidden by default */
+        .tagmetee-text img:nth-child(2),
+        .tagmetee-text img:nth-child(3) {
+            opacity: 0;
+            mix-blend-mode: screen;
+        }
+
+        /* NEW BURST ANIMATION TARGETS */
+        .glitch-loader.burst-active .tagmetee-icon {
+            animation: burstContainer 2.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+
+        .glitch-loader.burst-active .tagmetee-text {
+            animation: burstContainer 2.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+        
+        .glitch-loader.burst-active .tagmetee-text img:nth-child(1) {
+            animation: burstBase 2.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+        
+        .glitch-loader.burst-active .tagmetee-text img:nth-child(2) {
+            animation: burstCyan 2.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+
+        .glitch-loader.burst-active .tagmetee-text img:nth-child(3) {
+            animation: burstRed 2.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+
+        .glitch-loader.burst-active .tagmetee-text::before {
+            animation: lightningBloom 2.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+
+        @keyframes burstContainer {
+            0% { transform: scale(0.95); filter: drop-shadow(0 0 0 transparent) brightness(1); }
+            15% { transform: scale(1.05); filter: drop-shadow(0 0 10px var(--cyan)) brightness(1.2); }
+            40% { transform: scale(1); filter: drop-shadow(0 0 0px transparent) brightness(1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes burstBase {
+            0% { filter: drop-shadow(0 0 0px transparent) brightness(1); }
+            15% { filter: drop-shadow(0 0 5px var(--cyan)) brightness(3.5) saturate(3); } /* Intense text energy, zero background spread */
+            40% { filter: drop-shadow(0 0 0px transparent) brightness(1); }
+            100% { filter: drop-shadow(0 0 0px transparent) brightness(1); }
+        }
+        
+        @keyframes burstCyan {
+            0% { opacity: 0; clip-path: inset(50% 0 50% 0); transform: translate(0, 0); filter: brightness(1.5); }
+            10% { opacity: 1; clip-path: inset(20% 0 80% 0); transform: translate(-8px, -2px); filter: drop-shadow(-3px 0 2px var(--cyan)) brightness(2.5) saturate(2); }
+            15% { opacity: 1; clip-path: inset(0% 0 0% 0); transform: translate(12px, 3px); filter: drop-shadow(-5px 0 3px var(--cyan)) brightness(4) saturate(3); }
+            25% { opacity: 1; clip-path: inset(60% 0 10% 0); transform: translate(-5px, 5px); filter: drop-shadow(-2px 0 2px var(--cyan)) brightness(2); }
+            35% { opacity: 0; clip-path: inset(100% 0 0% 0); transform: translate(0, 0); }
+            100% { opacity: 0; }
+        }
+
+        @keyframes burstRed {
+            0% { opacity: 0; clip-path: inset(50% 0 50% 0); transform: translate(0, 0); filter: brightness(1.5); }
+            10% { opacity: 1; clip-path: inset(10% 0 60% 0); transform: translate(8px, 2px); filter: drop-shadow(3px 0 2px var(--red)) brightness(2.5) saturate(2); }
+            15% { opacity: 1; clip-path: inset(0% 0 0% 0); transform: translate(-12px, -3px); filter: drop-shadow(5px 0 3px var(--red)) brightness(4) saturate(3); }
+            25% { opacity: 1; clip-path: inset(30% 0 20% 0); transform: translate(5px, -5px); filter: drop-shadow(2px 0 2px var(--red)) brightness(2); }
+            35% { opacity: 0; clip-path: inset(0% 0 100% 0); transform: translate(0, 0); }
+            100% { opacity: 0; }
+        }
+
+        @keyframes lightningBloom {
+            0% { width: 0px; height: 0px; opacity: 0; }
+            10% { width: 30px; height: 20px; opacity: 1; box-shadow: 0 0 30px 10px rgba(0, 229, 255, 0.8); background: radial-gradient(ellipse, #fff 0%, #00e5ff 40%, transparent 80%); }
+            15% { width: 150px; height: 60px; opacity: 1; box-shadow: 0 0 60px 20px rgba(0, 229, 255, 1), 0 0 100px 40px rgba(0, 255, 255, 0.8); background: radial-gradient(ellipse, #ffffff 10%, #00e5ff 40%, #00fff2 70%, transparent 80%); }
+            25% { width: 50px; height: 20px; opacity: 0.8; box-shadow: 0 0 40px 15px rgba(0, 229, 255, 0.6); background: radial-gradient(ellipse, #fff 0%, #00e5ff 40%, transparent 80%); }
+            35% { width: 0px; height: 0px; opacity: 0; }
+            100% { width: 0px; height: 0px; opacity: 0; }
+        }
+
+        @keyframes smoothSlideIn {
+            0% { transform: translateY(20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        .cyber-status {
+            color: var(--cyan);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0;
+            text-align: center;
+            word-wrap: break-word;
+            width: 100%;
+            margin: 0; /* Reset margins relying on flex gap */
+            line-height: 1.4;
+            animation: smoothSlideIn 0.8s cubic-bezier(0.1, 0.8, 0.3, 1) forwards, blink 1.5s infinite 0.8s;
+        }
+        .cyber-status-tee {
+            color: var(--text);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0;
+            text-align: center;
+            width: 100%;
+            margin: 0; /* Reset margins relying on flex gap */
+            line-height: 1.4;
+            animation: smoothSlideIn 0.8s cubic-bezier(0.1, 0.8, 0.3, 1) forwards, blink 1.5s infinite 0.8s;
+        }
+
+        .triple-dot-loader {
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .triple-dot-loader .target-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--cyan), 0 0 20px var(--cyan);
+            opacity: 0.2;
+            animation: pulseDot 1.5s infinite ease-in-out;
+        }
+
+        .triple-dot-loader .target-dot:nth-child(1) { animation-delay: 0s; }
+        .triple-dot-loader .target-dot:nth-child(2) { animation-delay: 0.3s; }
+        .triple-dot-loader .target-dot:nth-child(3) { animation-delay: 0.6s; }
+
+        @keyframes pulseDot {
+            0%, 100% {
+                opacity: 0.2;
+                transform: scale(0.8);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* --- CLAIM FORM (View: Claim) --- */
+        #view-claim {
+            background-color: #121212;
+            background-image: linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            padding: 40px 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 229, 255, 0.1);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(0, 229, 255, 0.05);
+        }
+
+        .claim-heading {
+            font-family: 'Ethnocentric', 'Orbitron', sans-serif;
+            font-size: 28px;
+            color: var(--text-bright);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+        }
+
+        .claim-badge {
+            background: rgba(255, 0, 76, 0.15);
+            color: var(--red);
+            border: 1px solid var(--red);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+
+        .claim-desc {
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: 'Inter', sans-serif;
+        }
+
+        #signup-form {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            padding: 16px 16px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            outline: none;
+            letter-spacing: 1px;
+        }
+
+        .input-group input:focus {
+            border-color: var(--cyan);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .cyber-btn {
+            background: transparent;
+            color: var(--cyan);
+            border: 2px solid var(--cyan);
+            padding: 16px;
+            font-family: 'Ethnocentric', 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.1) inset;
+        }
+
+        .cyber-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -110%; width: 100%; height: 100%;
+            background: rgba(0, 229, 255, 0.2);
+            transition: all 0.4s cubic-bezier(0.1, 0.8, 0.3, 1);
+            z-index: -5;
+            transform: skewX(-15deg);
+        }
+
+        .cyber-btn:hover::before {
+            left: 110%;
+        }
+
+        .cyber-btn:hover {
+            background: rgba(0, 229, 255, 0.1);
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.4), 0 0 10px rgba(0, 229, 255, 0.2) inset;
+            transform: translateY(-2px);
+            color: #fff;
+            text-shadow: 0 0 5px var(--cyan);
+            border-color: var(--text-bright);
+        }
+
+        /* --- MESSAGE CARD (View: Message) --- */
+        #view-message {
+            background: transparent;
+        }
+
+        .message-card {
+            width: 100%;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .owner-name {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 32px;
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--text-bright);
+            letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+            text-transform: uppercase;
+        }
+
+        .owner-message {
+            font-family: 'Inter', sans-serif;
+            font-size: 20px;
+            line-height: 1.8;
+            text-align: center;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0 auto;
+            max-width: 90%;
+        }
+
+        .watermark {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 1);
+            opacity: 0.4;
+            margin-top: 60px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        /* --- ERROR & TOAST (View: Error / System Msgs) --- */
+        .error-icon {
+            font-size: 48px;
+            color: var(--red);
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255, 0, 76, 0.5);
+        }
+
+        .system-toast {
+            position: absolute;
+            top: 20px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 0, 76, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: 'Orbitron', sans-serif;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .system-toast.show { opacity: 1; }
+        .system-toast.success { background: rgba(0, 229, 255, 0.9); color: black; }
+
+        @media (max-width: 500px) {
+            #app-container {
+                border-radius: 0;
+                border: none;
+                background: transparent;
+                box-shadow: none;
+                backdrop-filter: none;
+            }
+            .cyber-status, .cyber-status-tee {
+                font-size: 12px;
+                letter-spacing: 1px;
+            }
+            .triple-dot-loader {
+                bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast" class="system-toast">Error connecting to grid...</div>
+
+    <main id="app-container">
+        
+        <!-- STATE 1: LOADING (Checking) -->
+        <section id="view-loading" class="view active">
+            <div class="glitch-loader" id="main-glitch-loader">
+                <div class="tagmetee-icon">
+                    <img src="logo-icon.png" alt="TagMeTee Icon">
+                </div>
+                <div class="tagmetee-text">
+                    <img src="logo-text.png" alt="Text Layer 1">
+                    <img src="logo-text.png" alt="Text Layer 2">
+                    <img src="logo-text.png" alt="Text Layer 3">
+                </div>
+            </div>
+            <div class="cyber-status-tee" id="loading-status">Your Tee, Your Identity</div>
+            <div class="cyber-status" id="loading-status">Connect . EXPRESS . STAND OUT.</div>
+            <div class="triple-dot-loader">
+                <div class="target-dot"></div>
+                <div class="target-dot"></div>
+                <div class="target-dot"></div>
+            </div>
+        </section>
+
+        <!-- STATE 2: CLAIM (Unclaimed/New) -->
+        <section id="view-claim" class="view hidden">
+            <h2 class="claim-heading">TAG ME TEE</h2>
+            <!-- <div class="claim-badge">UNCLAIMED TAG</div> -->
+            <p class="claim-desc">This is a blank canvas. Claim it to link your digital identity.</p>
+            
+            <form id="signup-form">
+                <div class="input-group">
+                    <input type="text" id="full-name" placeholder="FULL NAME" required>
+                </div>
+                <div class="input-group">
+                    <input type="tel" id="phone" placeholder="PHONE NUMBER" required>
+                </div>
+                <div class="input-group">
+                    <input type="date" id="dateOfBirth" required>
+                </div>
+                <div class="input-group">
+                    <input type="email" id="email" placeholder="EMAIL ADDRESS" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="password" placeholder="PASSWORD" required>
+                </div>
+                <button type="submit" class="cyber-btn" id="signup-button">Sign up</button>
+            </form>
+        </section>
+
+        <!-- STATE 3: MESSAGE (Text Destination) -->
+        <section id="view-message" class="view hidden">
+            <div class="message-card">
+                <h1 class="owner-name" id="owner-name">UNKNOWN</h1>
+                
+                <div class="owner-message" id="owner-text">
+                    [System: No message data found.]
+                </div>
+                
+                <div class="watermark">POWERED BY TAGMETEE</div>
+            </div>
+        </section>
+
+        <!-- STATE 4: ERROR -->
+        <section id="view-error" class="view hidden">
+            <div class="error-icon">⚠</div>
+            <h2 style="color: var(--red);">SYSTEM ERROR</h2>
+            <p id="error-desc" style="margin-bottom: 20px;">Invalid or missing signature.</p>
+            <button class="cyber-btn" style="background: rgba(255,0,76,0.2); color: var(--red); border: 1px solid var(--red);" onclick="window.location.reload()">RETRY SCAN</button>
+        </section>
+
+    </main>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        // -----------------------------------------
+        // 1. FIREBASE CONFIGURATION
+        //    (Paste your actual config here)
+        // -----------------------------------------
+        const firebaseConfig = {
+            apiKey: "__FIREBASE_API_KEY__",
+            authDomain: "__FIREBASE_AUTH_DOMAIN__",
+            projectId: "__FIREBASE_PROJECT_ID__",
+            storageBucket: "__FIREBASE_STORAGE_BUCKET__",
+            messagingSenderId: "__FIREBASE_MESSAGING_SENDER_ID__",
+            appId: "__FIREBASE_APP_ID__",
+            measurementId: "__FIREBASE_MEASUREMENT_ID__"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // -----------------------------------------
+        // 2. DOM ELEMENTS & STATE MANAGEMENT
+        // -----------------------------------------
+        const views = {
+            loading: document.getElementById('view-loading'),
+            claim: document.getElementById('view-claim'),
+            message: document.getElementById('view-message'),
+            error: document.getElementById('view-error')
+        };
+        const loadingStatus = document.getElementById('loading-status');
+        const toast = document.getElementById('toast');
+
+        // URL Parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const rawId = urlParams.get('id');
+        const id = rawId ? rawId.trim() : null;
+
+        // Transition logic
+        function switchState(stateName) {
+            Object.values(views).forEach(el => {
+                el.classList.remove('active');
+                setTimeout(() => el.classList.add('hidden'), 500); // Wait for fade out
+            });
+
+            const targetView = views[stateName];
+            if (targetView) {
+                targetView.classList.remove('hidden');
+                // Allow display rendering before opacity transition
+                setTimeout(() => targetView.classList.add('active'), 50);
+            }
+        }
+
+        function showToast(msg, type = 'error') {
+            toast.textContent = msg;
+            toast.className = `system-toast show ${type}`;
+            setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
+        // -----------------------------------------
+        // 3. CORE LOGIC (Checking Firebase)
+        // -----------------------------------------
+        
+        function triggerBurst() {
+            const loader = document.getElementById('main-glitch-loader');
+            const container = document.getElementById('app-container');
+            if (!loader) return;
+            
+            // Remove class to reset animation, force browser reflow, then add back
+            loader.classList.remove('burst-active');
+            if (container) container.classList.remove('burst-active');
+            
+            void loader.offsetWidth; 
+            
+            loader.classList.add('burst-active');
+            if (container) container.classList.add('burst-active');
+        }
+
+        async function runScanLogic() {
+            let fetchCompleted = false;
+
+            // 1. Trigger the single burst immediately
+            triggerBurst();
+
+            // 2. Set up the 60-second One-Minute Rule
+            const burstInterval = setInterval(() => {
+                if (!fetchCompleted) {
+                    triggerBurst();
+                } else {
+                    clearInterval(burstInterval);
+                }
+            }, 60000);
+
+            // Artificial minimum wait to ensure the burst is seen and appreciated
+            const minWait = new Promise(resolve => setTimeout(resolve, 2500));
+
+            if (!id || id.length > 64 || /[\/.#$\[\]]/.test(id)) {
+                await minWait;
+                fetchCompleted = true;
+                clearInterval(burstInterval);
+                document.getElementById('error-desc').innerText = "Invalid Tag ID format.";
+                switchState('error');
+                return;
+            }
+
+            try {
+                loadingStatus.innerText = "ACCESSING DATABASE...";
+                
+                // Start DB fetch async
+                const snapshotPromise = database.ref('links/' + id).once('value');
+
+                // Await both the artificial wait AND the connection
+                const [snapshot] = await Promise.all([snapshotPromise, minWait]);
+                
+                fetchCompleted = true;
+                clearInterval(burstInterval);
+
+                if (snapshot.exists()) {
+                    const linkData = snapshot.val();
+                    const destType = linkData.type || 'url';
+
+                    // 3A. NOT CONFIGURED / NULL URL -> Claim
+                    if (linkData.url === null && destType !== 'text') {
+                        switchState('claim');
+                        return;
+                    }
+
+                    // 3B. REDIRECT (URL) -> Async Logging + Instant Redirect
+                    if (destType === 'url') {
+                        loadingStatus.innerText = "ROUTING CONNECTION...";
+                        let targetUrl = typeof linkData === 'string' ? linkData : linkData.url;
+                        
+                        if (targetUrl) {
+                            // Asynchronous tracking - don't await this
+                            updateVisitCount(id).catch(err => console.error("Track err:", err));
+                            
+                            // Instant Redirect
+                            setTimeout(() => {
+                                window.location.replace(targetUrl);
+                            }, 300);
+                            return;
+                        } else {
+                            document.getElementById('error-desc').innerText = "Destination URL missing.";
+                            switchState('error');
+                        }
+                    }
+
+                    // 3C. TEXT MESSAGE
+                    if (destType === 'text') {
+                        loadingStatus.innerText = "DECRYPTING MESSAGE...";
+                        if (!linkData.text || !linkData.ownerUid) {
+                            document.getElementById('error-desc').innerText = "Data corrupted or missing.";
+                            switchState('error');
+                            return;
+                        }
+
+                        // Load Owner Data
+                        await updateVisitCount(id); // Fire and Forget Tracking logic already handled
+                        const ownerSnap = await database.ref('users/' + linkData.ownerUid).once('value');
+                        
+                        const ownerName = ownerSnap.exists() && ownerSnap.val().fullName 
+                                          ? ownerSnap.val().fullName 
+                                          : 'UNKNOWN';
+                        
+                        document.getElementById('owner-name').innerText = ownerName;
+                        document.getElementById('owner-text').innerText = linkData.text;
+
+                        switchState('message');
+                    }
+
+                } else {
+                    // ID doesn't exist -> Claim
+                    await minWait;
+                    fetchCompleted = true;
+                    clearInterval(burstInterval);
+                    switchState('claim');
+                }
+            } catch (err) {
+                console.error("Firebase Error:", err);
+                await minWait;
+                fetchCompleted = true;
+                clearInterval(burstInterval);
+                document.getElementById('error-desc').innerText = "Network connection failed.";
+                switchState('error');
+            }
+        }
+
+        // Tracking Logic (Fire and Forget)
+        async function updateVisitCount(linkId) {
+            const linkRef = database.ref('links/' + linkId);
+            const today = new Date().toISOString().split('T')[0];
+
+            return linkRef.transaction((currentData) => {
+                const norm = typeof currentData === 'string' ? { url: currentData } : (currentData || {});
+                const visits = Number(norm.visitCount) || 0;
+                const dailyVisits = Number(norm.dailyVisitCount) || 0;
+                const lastDate = norm.lastVisitDate;
+
+                norm.visitCount = visits + 1;
+                if (lastDate === today) {
+                    norm.dailyVisitCount = dailyVisits + 1;
+                } else {
+                    norm.dailyVisitCount = 1;
+                    norm.lastVisitDate = today;
+                }
+                return norm;
+            });
+        }
+
+        // -----------------------------------------
+        // 4. SIGNUP FLOW ENGINE
+        // -----------------------------------------
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('signup-button');
+            btn.innerText = "INITIALIZING...";
+            btn.disabled = true;
+
+            const fullName = document.getElementById('full-name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const dob = document.getElementById('dateOfBirth').value;
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            // Age Calc
+            const birthDate = new Date(dob);
+            let age = new Date().getFullYear() - birthDate.getFullYear();
+            if (new Date().getMonth() < birthDate.getMonth()) age--;
+
+            try {
+                // 1. Create Auth
+                const cred = await auth.createUserWithEmailAndPassword(email, password);
+                await cred.user.updateProfile({ displayName: fullName });
+
+                // 2. Assign ID atomically
+                const generatedId = id || generateHashId();
+                await database.ref('links/' + generatedId).transaction(currentData => {
+                    if (currentData === null || currentData === undefined) {
+                        return { ownerUid: cred.user.uid, type: 'url', url: null, visitCount: 0 };
+                    }
+                    return; // Abort
+                });
+
+                // 3. Save User Record
+                await database.ref('users/' + cred.user.uid).set({
+                    fullName, phone, dateOfBirth: dob, age, linkId: generatedId,
+                    createdAt: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                showToast("IDENTITY CLAIMED!", "success");
+                btn.innerText = "SUCCESS";
+                
+                // Let user know they own it now, maybe redirect to an admin dashboard
+                // setTimeout(() => {
+                //     window.location.href = "/"; // Replace with actual dash
+                // }, 1500);
+
+            } catch (err) {
+                console.error(err);
+                if(err.code === 'auth/email-already-in-use') showToast("Email registered.");
+                else if(err.code === 'auth/weak-password') showToast("Password too weak.");
+                else showToast("Error claiming tag.");
+                
+                btn.innerText = "Sign up";
+                btn.disabled = false;
+            }
+        });
+
+        function generateHashId() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            return Array.from({length: 6}, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+        }
+
+        // Initialize when window loads
+        window.addEventListener('load', runScanLogic);
+    </script>
+</body>
+</html>
